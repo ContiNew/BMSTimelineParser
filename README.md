@@ -4,7 +4,7 @@
 ## How to use
     import BMSTimelineParser as bp
     
-    parser = bp.BMSTimelineParser("TC_7KHD.bms") # construct a parser object with filename
+    parser = bp.BMSTimelineParser("filename.bms") # construct a parser object with filename
     parser.readWholeBar() # readWholeBar() to read all paragraphs in target BMS File.
     parser.turnOff() # turnOff() to close target BMS File.
     datagram = parser.extract_to_pandas() # extract the output to pandas.Datagram
