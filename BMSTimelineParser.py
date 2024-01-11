@@ -4,8 +4,8 @@ import os
 
 class BMSTimelineParser:
     
-    def __init__(self,filename:str):
-        self.bmsFile = open(filename, "rt", encoding='UTF-8') # bms 파일 오픈 
+    def __init__(self,filename:str, encode:str='utf-8'):
+        self.bmsFile = open(filename, "rt", encoding=encode) # bms 파일 오픈 
         self.bmsFile.seek(0)
         curTxt = self.bmsFile.readline()
         while(not curTxt.startswith("#BPM")):
