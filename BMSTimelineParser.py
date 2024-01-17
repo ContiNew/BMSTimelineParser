@@ -91,8 +91,8 @@ class BMSTimelineParser:
         for note in notesInLane:
             if(note != "00"):
                 location = elem_count/grid # 노트의 상대위치
-                timestamp = (barNum+location+1) * (beatPerBar * self.SPB) * 1000
-                # (마디 번호 + 마디내 위치 +1) * (마디당 박자 * 박자당 시간) * ms 단위 변환 (1s = 1000ms)
+                timestamp = (barNum+location) * (beatPerBar * self.SPB) * 1000
+                # (마디 번호 + 마디내 위치) * (마디당 박자 * 박자당 시간) * ms 단위 변환 (1s = 1000ms)
                 noteInfo = [timestamp, barNum, location, curLane, note]
                 # 타임스탬프, 마디번호, 노트의 마디내 상대적 위치, 레인번호, 노트 심볼(키음) 
                 self.noteInfoList.append(noteInfo)
