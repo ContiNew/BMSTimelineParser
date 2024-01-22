@@ -43,8 +43,13 @@ class Tools:
         symNotes = Tools.get_symbolized_notes(df)
         notes_df = pd.concat([symNotes, timediff], axis=1)
         return notes_df
-        
-                
+    
+    @staticmethod
+    def get_relative_loc_diff(df:pd.DataFrame)-> pd.Series:
+        first_note_location = df['barNum'].at[0] + df['location'].at[0]
+        note_loc_diff = (df['barNum'] + df['location']).drop_duplicates(keep="first").reset_index(drop=True)
+        loc_diff_series = (note_loc_diff - note_loc_diff.shift(1)).fillna(first_note_location).reset_index(drop=True)
+        return loc_diff_series
 
         
 

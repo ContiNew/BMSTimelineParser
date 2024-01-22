@@ -8,25 +8,30 @@ class BMSTimelineParser:
         self.bmsFile = open(filename, "rt", encoding=encode) # bms 파일 오픈 
         self.bmsFile.seek(0)
         curTxt = self.bmsFile.readline()
+        if curTxt.startswith(';'): raise NotSupportedException
         while(not curTxt.startswith("#BPM")):
             curTxt = self.bmsFile.readline()
-        self.BPM = int(curTxt.split(" ")[1]) # BPM 저장
+        self.BPM = float(curTxt.split(" ")[1]) # BPM 저장
         self.SPB = (1/(self.BPM/60)) # 1 박자당(4분 음표)소요 되는 시간 계산
         self.BPBar_default = 4 # 마디당 박자는 2번 채널을 쓰지 않았을 경우 4/4 이므로
         self.noteInfoList = []
-
+        self.bmsFile.seek(0) #오프셋을 원래대로 되돌린다
+        self.seekMainDataField()
+        
+    def seekMainDataField(self):
         curTxt = self.bmsFile.readline()
         while(not curTxt.startswith("*---------------------- MAIN DATA FIELD")):
             curTxt = self.bmsFile.readline() #offset을 미룬다 
         
-    
     def readOneBar(self):
         beatPerBar = self.findBeatPerBar() # 우선 마디당 박자를 구한다. 
         curTxt = self.bmsFile.readline() # 먼저 읽는다
-        while(not curTxt.startswith("#") and not curTxt==""): # 레인 데이터를 찾을때 까지 readline
-              curTxt = self.bmsFile.readline() 
         if(curTxt==""): return -1 # eof를 만나면 자동종료
 
+        while(not curTxt.startswith("#")): # 레인 데이터를 찾을때 까지 readline
+              print("now Reading : ", curTxt)
+              curTxt = self.bmsFile.readline() 
+       
         curBar = int(curTxt[1:4]) # 현재 탐색중인 마디 
         while(not curTxt.startswith("\n")): # 다음 마디로 넘어갈때까지 읽는다.(개행 넘어갈 때 까지)
             splittedTxt = curTxt.split(':') # : 를 기준으로 오브젝트 데이터를 나눈다.
@@ -67,9 +72,9 @@ class BMSTimelineParser:
     def findBeatPerBar(self): # 마디당 박자를 찾아주는 함수
         offset = self.bmsFile.tell()
         curTxt = self.bmsFile.readline() # 먼저 읽는다
-        while(not curTxt.startswith("#") and not curTxt==""): # 레인 데이터를 찾을때 까지 readline
-              curTxt = self.bmsFile.readline() 
         if(curTxt==""): return -1 # eof를 만나면 자동종료
+        while(not curTxt.startswith("#")): # 레인 데이터를 찾을때 까지 readline
+              curTxt = self.bmsFile.readline() 
 
         while(not curTxt.startswith("\n")): # 다음 마디로 넘어갈때까지 읽는다.(개행 넘어갈 때 까지)
             splittedTxt = curTxt.split(':') # : 를 기준으로 오브젝트 데이터를 나눈다.
@@ -110,7 +115,11 @@ class BMSTimelineParser:
         
                 
             
-        
+class NotSupportedException(Exception):  # 처리불가능한 BMS 파일 처리용
+    def __str__(self) -> str:
+        return "Not supported BMS File (3rd party editer)"
+    pass
+
 
         
             
