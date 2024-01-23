@@ -1,6 +1,7 @@
 import BMSTimelineParser as bp
 import pandas as pd
 import numpy as np
+import math
 
 class Tools:
     @staticmethod
@@ -14,9 +15,18 @@ class Tools:
     @staticmethod
     def get_timediff_series(df:pd.DataFrame)-> pd.Series:
         first_note_timestamp = df['timestamp'].at[0]
-        timediff_df = df['timestamp'].drop_duplicates(keep="first")
+        timediff_df =df['timestamp'].drop_duplicates(keep="first")
         timediff_series = (timediff_df - timediff_df.shift(1)).fillna(first_note_timestamp).reset_index(drop=True)
         return timediff_series
+    
+    @staticmethod
+    def get_timediff_series_int(df:pd.DataFrame)-> pd.Series:
+        first_note_timestamp = df['timestamp'].apply(math.floor).at[0]
+        timediff_df = df['timestamp'].apply(math.floor).drop_duplicates(keep="first")
+        timediff_series = (timediff_df - timediff_df.shift(1)).fillna(first_note_timestamp).reset_index(drop=True)
+        return timediff_series
+        
+
     
     @staticmethod
     def get_symbolized_notes(df:pd.DataFrame)->pd.Series:
@@ -38,8 +48,8 @@ class Tools:
         return pd.Series(symbol_list).rename("NoteSymbol")
     
     @staticmethod
-    def get_symbolized_df(df:pd.DataFrame)->pd.DataFrame:
-        timediff= Tools.get_timediff_series(df)
+    def get_symbolized_df(df:pd.DataFrame, isInt:bool=False)->pd.DataFrame:
+        timediff= Tools.get_timediff_series(df) if isInt==False else Tools.get_timediff_series_int(df)
         symNotes = Tools.get_symbolized_notes(df)
         notes_df = pd.concat([symNotes, timediff], axis=1)
         return notes_df

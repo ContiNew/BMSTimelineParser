@@ -1,5 +1,5 @@
 import pandas as pd
-import os  
+import os
 
 
 class BMSTimelineParser:
@@ -11,8 +11,8 @@ class BMSTimelineParser:
         if curTxt.startswith(';'): raise NotSupportedException
         while(not curTxt.startswith("#BPM")):
             curTxt = self.bmsFile.readline()
-        self.BPM = float(curTxt.split(" ")[1]) # BPM 저장
-        self.SPB = (1/(self.BPM/60)) # 1 박자당(4분 음표)소요 되는 시간 계산
+        self.BPMlist = [(float(curTxt.split(" ")[1]),0.0)] # BPM를 리스트 형태로 저장
+        self.SPBlist = [(1/(self.BPMlist[0][0]/60),0.0)] # 1 박자당(4분 음표)소요 되는 시간을 리스트 형태로 저장
         self.BPBar_default = 4 # 마디당 박자는 2번 채널을 쓰지 않았을 경우 4/4 이므로
         self.noteInfoList = []
         self.bmsFile.seek(0) #오프셋을 원래대로 되돌린다
@@ -41,7 +41,8 @@ class BMSTimelineParser:
             notesInLane = []
             for i in range(0, len(splittedTxt[1][:-1]),2):# [:-1] 이용해서 개행문자는 입력 안받음
                 notesInLane.append(splittedTxt[1][:-1][i:i+2]) # 레인 안에 노트를 길이가 2인 문자열 형태로 집어넣음
-            self.addNoteInfo(curBar,curLane,notesInLane,beatPerBar) # 현재 마디, 현재 레인번호, 현재 레인의 노트리스트, 마디당 박자를 입력
+            if(curLane == 8): self.addBPMInfo(curBar,notesInLane)
+            else: self.addNoteInfo(curBar,curLane,notesInLane,beatPerBar) # 현재 마디, 현재 레인번호, 현재 레인의 노트리스트, 마디당 박자를 입력
             curTxt = self.bmsFile.readline() # 다음 라인으로
         return 0 # 정상 종료
     
@@ -95,19 +96,49 @@ class BMSTimelineParser:
         for note in notesInLane:
             if(note != "00"):
                 location = elem_count/grid # 노트의 상대위치
-                timestamp = (barNum+location) * (beatPerBar * self.SPB) * 1000
+                timestamp = 0
+                SPB_idx= self.findNearestSPBidx(location+barNum)
+                SPB_last = self.SPBlist[SPB_idx][0]
+                SPB_last_loc = self.SPBlist[SPB_idx][1]
+                for i in range(0, SPB_idx):
+                    loc_diff = self.SPBlist[i+1][1]- self.SPBlist[i][1]
+                    spb = self.SPBlist[i][0]
+                    timestamp += spb*beatPerBar*loc_diff
+                timestamp +=SPB_last*beatPerBar*((barNum+location)-SPB_last_loc)
+                timestamp *= 1000 
+                #timestamp = (barNum+location) * (beatPerBar * self.SPB) * 1000
                 # (마디 번호 + 마디내 위치) * (마디당 박자 * 박자당 시간) * ms 단위 변환 (1s = 1000ms)
                 noteInfo = [timestamp, barNum, location, curLane, note]
                 # 타임스탬프, 마디번호, 노트의 마디내 상대적 위치, 레인번호, 노트 심볼(키음) 
                 self.noteInfoList.append(noteInfo)
             elem_count += 1
+    
+    def addBPMInfo(self, barNum:int, notesInLane:list[str]): # BPM 정보를 추가
+        grid = len(notesInLane)
+        elem_count = 0
+        for note in notesInLane:
+            if(note != "00"):
+                bpm = int(note, 16)
+                location = elem_count/grid + barNum
+                self.BPMlist.append((bpm, location))
+                self.SPBlist.append((1/(bpm/60),location))
+            elem_count += 1
+             
+    def findNearestSPBidx(self,note_loc:float)->float:
+        idx = -1
+        for SPBInfo in self.SPBlist:
+            if(note_loc <= SPBInfo[1]): break
+            idx += 1
+        
+        return idx                
+        
                     
     def turnOff(self):
         self.bmsFile.close()
                     
     @staticmethod
     def checkLaneNumber(channel:int)->int:
-        cases = { 11:1, 12:2, 13:3, 14:4, 15:5, 16:0, 18:6, 19:7}
+        cases = { 11:1, 12:2, 13:3, 14:4, 15:5, 16:0, 18:6, 19:7, 3:8} # BPM은 8번으로 아웃풋
         if(channel in cases): return cases[channel]
         else : return -1
         
@@ -121,9 +152,4 @@ class NotSupportedException(Exception):  # 처리불가능한 BMS 파일 처리�
 
 
         
-            
-            
-        
-
-            
             
